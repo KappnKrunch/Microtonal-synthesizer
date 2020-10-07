@@ -2,8 +2,6 @@
 //  MicroSynth.cpp
 //  microtonal synthesizer
 //
-//  Created by Andrea Forbush on 10/4/20.
-//  Copyright © 2020 Andrea Forbush. All rights reserved.
 //
 
 #include "MicroSynth.pch"
