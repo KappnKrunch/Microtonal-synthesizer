@@ -1,0 +1,140 @@
+#ifndef MicroSynth_pch
+#define MicroSynth_pch
+
+#include <stdio.h>
+#include <vector>
+#include <cmath>
+#include <fstream>
+#include <iomanip>
+#include <string>
+#include "RtMidi.h"
+#include "SFML/Audio.hpp"
+#include "SFML/Window.hpp"
+
+using namespace std;
+
+//using namespace sf;
+
+struct Overtone
+{
+    double freq = 1.0;
+    char form = 's';
+};
+
+typedef vector<Overtone> Timbre;
+typedef vector<int> ChordIndices;
+
+
+class MusicTheory
+{    
+public:
+    static double FFF(const int &fundamentalIndex, const int &intervalIndex, const int& octaveIndex);
+
+	static double BaseFrequency(const int& intervalIndex, const int& octaveIndex);
+
+	static string noteNames[];
+
+	static enum ScaleDegree {I,ii,II,iii,III,IV,T,V,vi,VI,vii,VII};
+
+	//the first 12 notes on the piano
+    static double fundamentalPitches[];
+};
+
+
+struct Key
+{
+    double frequency;
+    bool active;
+    bool keyDown;
+    double initialAmplitude;
+    double amplitude;
+    double amplitudeDelta;
+};
+
+class KeyBoard
+{
+public:
+    void SetFundamentalPitch(const int &fundamentalIndex);
+
+	void SetFundamentalPitch();
+    
+    void SetKeyOn(const int& keyIndex, const double& velocity);
+    
+    void SetKeyOff(const int& keyIndex);
+    
+    //this runs every frame
+    void KeySustain(const int& keyIndex);
+    
+    bool footPedal = false;
+    
+    double decaySpeed = 0.1;
+    double attackSpeed = 1.1;
+    double sustainSpeed = 0.9999;
+    
+    double d_cutoffAmplitude = 0.0000001;
+    
+    Key keys[96]{0};
+};
+
+class Synthesizer : public sf::SoundStream
+{
+public:
+    
+    Synthesizer();
+    
+    void SetStreamPref(const int& bufferSize, const int& channelCount, const int& sampleRate);
+    
+    void SetInstrumentTimbre(Timbre &newTimbre);
+    
+    void ReadConfigFile(const bool& shouldPrint);
+    
+    KeyBoard keyboard;
+    
+private:
+    
+    sf::Int16 GenerateNoteSin(const double& time, const double& freq, const double& amp, const int& sampleRate) const;
+    
+    void SampleActiveKeys(KeyBoard &keyboard, const int& sampleChunkSize);
+    
+    virtual bool onGetData(Chunk& data);
+    
+    virtual void onSeek(sf::Time timeOffset);
+    
+    vector<sf::Int16> m_samples;
+    size_t m_currentSample;
+    int samplesToStream;
+    size_t m_sampleTime;
+    int m_sampleRate;
+    const double twopi = 6.283185307;
+    
+    Timbre instrumentTimbre; // use this to control note timbre
+};
+
+
+class InputManager
+{
+public:
+    ChordIndices DeconstructStringInput(const string &rawInput);
+    
+    void WatchKeyboardInputs(Synthesizer& synth);
+    
+    void InitializeMidiConnection();
+    
+    void WatchMidiInputs(Synthesizer& synth);
+    
+    void WatchConsoleInputs(Synthesizer& synth);
+    
+private:
+    string keybordNoteIndex = "awsedftgyhuj";
+    string fundamentalNoteIndex = "z";
+    
+    RtMidiIn *midiIn;
+    
+    bool midiEnabled;
+    bool consoleInputEnabled;
+    
+    vector<unsigned char> message; //bytes from midi output
+    int nBytes;
+};
+
+#endif /* MicroSynth_pch */
